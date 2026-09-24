@@ -62,3 +62,16 @@ def test_cli_help_subprocess() -> None:
     )
     assert result.returncode == 0
     assert "answer-clip" in result.stdout
+
+
+def test_cli_root_and_ask_help_mention_hybrid() -> None:
+    from answer_clip.cli import main
+    import pytest
+
+    with pytest.raises(SystemExit) as exc:
+        main(["--help"])
+    assert exc.value.code == 0
+
+    with pytest.raises(SystemExit) as exc2:
+        main(["ask", "--help"])
+    assert exc2.value.code == 0

@@ -199,7 +199,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="answer-clip",
         description=(
-            "Search lecture/video transcripts locally and clip matching moments."
+            "Search lecture/video transcripts locally "
+            "(hybrid keyword+embed by default) and clip matching moments."
         ),
     )
     parser.add_argument(
@@ -282,7 +283,7 @@ def build_parser() -> argparse.ArgumentParser:
     ask_p = sub.add_parser(
         "ask",
         help=(
-            "Search segments.json (default: hybrid keyword+embed RRF); "
+            "Search segments.json (default --mode hybrid: keyword + embed RRF); "
             "optional LLM window rerank when an API key is set."
         ),
     )
@@ -308,7 +309,7 @@ def build_parser() -> argparse.ArgumentParser:
     ask_p.add_argument(
         "--no-llm",
         action="store_true",
-        help="Force keyword-only scoring (never call LLM).",
+        help="Disable LLM window rerank (retrieval mode unchanged).",
     )
     ask_p.add_argument(
         "--llm",
@@ -326,7 +327,8 @@ def build_parser() -> argparse.ArgumentParser:
         default="hybrid",
         help=(
             "Retrieval mode (default: hybrid = keyword + embed RRF; "
-            "keyword = lexical only; embed = semantic only, fails without index)."
+            "missing embed → keyword + embed_skipped; "
+            "keyword = lexical only; embed = semantic only, errors without index)."
         ),
     )
     ask_p.add_argument(
@@ -429,7 +431,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=0.0,
         help="Pad/merge ask windows before clipping.",
     )
-    run_p.add_argument("--no-llm", action="store_true", help="Keyword-only ask.")
+    run_p.add_argument(
+        "--no-llm",
+        action="store_true",
+        help="Disable LLM window rerank during ask.",
+    )
     run_p.add_argument("--llm", action="store_true", help="Attempt LLM rerank.")
     run_p.add_argument(
         "--hit",
@@ -455,6 +461,10 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Encode segments.json into embeddings.npz "
             "(sentence-transformers; requires [embed] extra)."
+        ),
+        description=(
+            "Build data/videos/<id>/embeddings.npz from segments.json "
+            "using the [embed] extra (default model BAAI/bge-small-zh-v1.5)."
         ),
     )
     index_p.add_argument("video_id", help="Ingested video id under data/videos/<id>/.")
