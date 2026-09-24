@@ -36,6 +36,36 @@ def test_tokenize_latin_and_cjk() -> None:
     assert "descent" in toks
     assert "梯" in toks
     assert "梯度" in toks
+    assert "梯度下" in toks
+    assert "度下降" in toks
+
+
+def test_tokenize_cjk_trigram_short_phrase() -> None:
+    """CJK trigrams improve short Chinese query matching (no jieba)."""
+    toks = tokenize("梯度下降算法")
+    assert "梯度下" in toks
+    assert "度下降" in toks
+    assert "下降算" in toks
+    assert "降算法" in toks
+    # unigram / bigram still present
+    assert "梯" in toks
+    assert "下降" in toks
+    # Latin path untouched
+    assert tokenize("Gradient Descent") == ["gradient", "descent"]
+
+
+def test_tokenize_cjk_trigram_scores_hit() -> None:
+    from answer_clip.models import SubtitleSegment
+    from answer_clip.query.score import rank_segments
+
+    segs = [
+        SubtitleSegment(start=0.0, end=1.0, text="今天讲完全无关的烹饪技巧。"),
+        SubtitleSegment(start=1.0, end=3.0, text="本节介绍梯度下降算法的步骤。"),
+    ]
+    # Trigram overlap with 梯度下降算法 even if query is a 3-char slice.
+    hits = rank_segments("度下降", segs, top_k=2)
+    assert hits
+    assert "梯度下降" in hits[0].text
 
 
 def test_rank_hits_known_keyword() -> None:

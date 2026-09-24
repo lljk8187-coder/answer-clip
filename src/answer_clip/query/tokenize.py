@@ -4,8 +4,9 @@ Strategy (MVP, not perfect NLP):
 - Lowercase the text.
 - Latin runs: split on non-alphanumeric; keep tokens with length >= 2
   (or length 1 if the whole query is a single letter — rare).
-- CJK runs (\\u4e00-\\u9fff etc.): emit unigrams and bigrams so short
-  Chinese queries still match segment text without a dictionary.
+- CJK runs (U+4E00–U+9FFF etc.): emit unigrams, bigrams, and trigrams
+  so short Chinese queries still match segment text without a dictionary
+  (no jieba / external NLP deps).
 - Digits length >= 2 kept as tokens.
 """
 
@@ -42,6 +43,8 @@ def tokenize(text: str) -> list[str]:
             _add(ch)
         for i in range(len(run) - 1):
             _add(run[i : i + 2])
+        for i in range(len(run) - 2):
+            _add(run[i : i + 3])
 
     return tokens
 
