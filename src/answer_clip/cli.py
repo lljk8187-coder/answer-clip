@@ -13,6 +13,7 @@ from answer_clip.asr.pipeline import AsrError, run_asr
 from answer_clip.ffprobe import FfprobeError
 from answer_clip.ingest import IngestError, ingest
 from answer_clip.clip import ClipError, export_clip
+from answer_clip.index import EmbedBackendError, IndexBuildError, build_index
 from answer_clip.run import RunError, run_pipeline
 from answer_clip.query.ask import AskError, ask, ask_to_json
 
@@ -156,6 +157,31 @@ def _cmd_run(args: argparse.Namespace) -> int:
         )
     except RunError as exc:
         print(f"run error: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps(summary, indent=2, ensure_ascii=False))
+    return 0
+
+
+
+def _cmd_index(args: argparse.Namespace) -> int:
+    data_root = Path(args.data_dir).expanduser() if args.data_dir else None
+    download_root = (
+        Path(args.download_root).expanduser() if args.download_root else None
+    )
+    try:
+        summary = build_index(
+            args.video_id,
+            data_root=data_root,
+            backend=args.backend,
+            model_id=args.model,
+            device=args.device,
+            download_root=download_root,
+        )
+    except IndexBuildError as exc:
+        print(f"index error: {exc}", file=sys.stderr)
+        return 1
+    except EmbedBackendError as exc:
+        print(f"index backend error: {exc}", file=sys.stderr)
         return 1
     print(json.dumps(summary, indent=2, ensure_ascii=False))
     return 0
@@ -387,11 +413,40 @@ def build_parser() -> argparse.ArgumentParser:
     run_p.set_defaults(_handler=_cmd_run)
 
 
-    for name, help_text in (
-        ("index", "Build or refresh the transcript index (stub)."),
-    ):
-        p = sub.add_parser(name, help=help_text)
-        p.set_defaults(_handler=lambda _args, n=name: _cmd_stub(n))
+    index_p = sub.add_parser(
+        "index",
+        help=(
+            "Encode segments.json into embeddings.npz "
+            "(sentence-transformers; requires [embed] extra)."
+        ),
+    )
+    index_p.add_argument("video_id", help="Ingested video id under data/videos/<id>/.")
+    index_p.add_argument(
+        "--data-dir",
+        default=None,
+        help="Data root (default: ./data or $ANSWER_CLIP_DATA).",
+    )
+    index_p.add_argument(
+        "--backend",
+        default="sentence-transformers",
+        help="Embed backend (default: sentence-transformers; openai-compatible is stub).",
+    )
+    index_p.add_argument(
+        "--model",
+        default="BAAI/bge-small-zh-v1.5",
+        help="Embedding model id (default: BAAI/bge-small-zh-v1.5).",
+    )
+    index_p.add_argument(
+        "--device",
+        default=None,
+        help="Optional device for sentence-transformers (e.g. cpu, cuda).",
+    )
+    index_p.add_argument(
+        "--download-root",
+        default=None,
+        help="Model cache directory (default: <data>/models).",
+    )
+    index_p.set_defaults(_handler=_cmd_index)
 
     return parser
 

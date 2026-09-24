@@ -26,8 +26,9 @@ clips the moments that answer your question.
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
-# local speech-to-text:
+# local speech-to-text / embeddings:
 pip install -e ".[asr]"
+pip install -e ".[embed]"
 answer-clip --help
 ```
 
@@ -57,7 +58,7 @@ under `data/videos/<id>/clips/` unless you pass `--out`.
 | `ask <video_id> "…"` | Keyword Top-K hits; optional LLM window rerank |
 | `clip <video_id>` | ffmpeg export (`--start/--end` or `--hit` + `--ask-result`) |
 | `run <path> "…"` | ingest → asr → ask → clip |
-| `index` | Stub (later phases) |
+| `index <video_id>` | Encode `segments.json` → `embeddings.npz` (`[embed]` extra) |
 
 ## Environment variables
 
