@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>answer-clip (localhost)</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; color: #1a1a1a; }
+    body { max-width: 52rem; margin: 1.5rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.35rem; margin-bottom: 0.25rem; }
+    .muted { color: #666; font-size: 0.9rem; }
+    label { display: block; margin-top: 0.75rem; font-weight: 600; }
+    input, select, button, textarea {
+      font: inherit; padding: 0.4rem 0.55rem; margin-top: 0.25rem;
+    }
+    input[type=text], select, textarea { width: 100%; box-sizing: border-box; }
+    button { cursor: pointer; margin-right: 0.5rem; margin-top: 0.75rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.95rem; }
+    th, td { border-bottom: 1px solid #ddd; text-align: left; padding: 0.45rem 0.3rem; vertical-align: top; }
+    #status { margin-top: 0.75rem; white-space: pre-wrap; }
+    .warn { background: #fff8e6; border: 1px solid #f0d78c; padding: 0.6rem 0.75rem; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>answer-clip · localhost demo</h1>
+  <p class="muted">Bound to loopback only. No auth. Data: <code>{{ data_root }}</code></p>
+  <p class="warn muted">Not for multi-tenant / public internet exposure.</p>
+
+  <label for="video_id">Video</label>
+  <select id="video_id">
+    {% if video_ids %}
+      {% for id in video_ids %}
+      <option value="{{ id }}">{{ id }}</option>
+      {% endfor %}
+    {% else %}
+      <option value="">(no videos with segments.json)</option>
+    {% endif %}
+  </select>
+
+  <label for="question">Question</label>
+  <input id="question" type="text" placeholder="例如：梯度下降是什么" />
+
+  <label for="mode">Mode</label>
+  <select id="mode">
+    <option value="hybrid" selected>hybrid</option>
+    <option value="keyword">keyword</option>
+    <option value="embed">embed</option>
+  </select>
+
+  <div>
+    <button type="button" id="btn-ask">Ask</button>
+  </div>
+  <div id="status" class="muted"></div>
+  <table id="hits" hidden>
+    <thead>
+      <tr><th>#</th><th>start</th><th>end</th><th>score</th><th>text</th><th></th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <p id="clip-result" class="muted"></p>
+
+  <script>
+    const statusEl = document.getElementById("status");
+    const hitsTable = document.getElementById("hits");
+    const hitsBody = hitsTable.querySelector("tbody");
+    const clipResult = document.getElementById("clip-result");
+
+    function setStatus(msg) { statusEl.textContent = msg || ""; }
+
+    document.getElementById("btn-ask").addEventListener("click", async () => {
+      const video_id = document.getElementById("video_id").value;
+      const question = document.getElementById("question").value.trim();
+      const mode = document.getElementById("mode").value;
+      if (!video_id || !question) {
+        setStatus("Pick a video and enter a question.");
+        return;
+      }
+      setStatus("Asking…");
+      clipResult.textContent = "";
+      hitsBody.innerHTML = "";
+      hitsTable.hidden = true;
+      try {
+        const res = await fetch("/api/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ video_id, question, mode, top_k: 8, use_llm: false }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setStatus("Error: " + (data.detail || JSON.stringify(data)));
+          return;
+        }
+        const skipped = data.embed_skipped ? (" | embed_skipped: " + data.embed_skipped) : "";
+        setStatus("mode=" + data.mode + " · hits=" + (data.hits || []).length + skipped);
+        (data.hits || []).forEach((h, i) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML =
+            "<td>" + i + "</td>" +
+            "<td>" + h.start.toFixed(2) + "</td>" +
+            "<td>" + h.end.toFixed(2) + "</td>" +
+            "<td>" + h.score + "</td>" +
+            "<td></td><td></td>";
+          tr.children[4].textContent = h.text || "";
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = "Clip";
+          btn.addEventListener("click", () => clipHit(video_id, h.start, h.end));
+          tr.children[5].appendChild(btn);
+          hitsBody.appendChild(tr);
+        });
+        hitsTable.hidden = false;
+      } catch (err) {
+        setStatus("Request failed: " + err);
+      }
+    });
+
+    async function clipHit(video_id, start, end) {
+      clipResult.textContent = "Clipping…";
+      try {
+        const res = await fetch("/api/clip", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ video_id, start, end, pad_sec: 0 }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          clipResult.textContent = "Clip error: " + (data.detail || JSON.stringify(data));
+          return;
+        }
+        const url = data.download_url || "#";
+        clipResult.innerHTML =
+          "Saved: <code>" + (data.output_path || "") + "</code> · " +
+          "<a href=\"" + url + "\">download</a>";
+      } catch (err) {
+        clipResult.textContent = "Clip failed: " + err;
+      }
+    }
+  </script>
+</body>
+</html>

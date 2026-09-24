@@ -20,6 +20,8 @@ Phase 2 retrieval (still versioned as `0.1.0` until the `0.2.0` cut).
   (ask never silently downloads models).
 - **M9 — CJK trigram**: keyword `tokenize` emits CJK unigram + bigram +
   **trigram** (no jieba / new deps) for better short Chinese recall.
+- **M11 — `serve`**: optional `[web]` FastAPI localhost demo
+  (ask → hits → clip); default bind `127.0.0.1`.
 
 ### Docs
 

@@ -30,6 +30,7 @@ pip install -e ".[dev]"
 # local speech-to-text / embeddings:
 pip install -e ".[asr]"
 pip install -e ".[embed]"
+pip install -e ".[web]"
 answer-clip --help
 ```
 
@@ -59,6 +60,7 @@ under `data/videos/<id>/clips/` unless you pass `--out`.
 | `ingest <path>` | Register media under `data/videos/<id>/` + `meta.json` (ffprobe) |
 | `asr <video_id\|--path>` | Write `segments.json` + `transcript.srt` (faster-whisper) |
 | `index <video_id>` | Encode `segments.json` → `embeddings.npz` (`[embed]` extra) |
+| `serve` | Localhost demo UI (ask → hits → clip; `[web]` extra, binds `127.0.0.1`) |
 | `ask <video_id> "…"` | Hybrid / keyword / embed retrieval + optional LLM rerank |
 | `clip <video_id>` | ffmpeg export (`--start/--end` or `--hit` + `--ask-result`) |
 | `run <path> "…"` | ingest → asr → ask → clip |
@@ -67,6 +69,7 @@ under `data/videos/<id>/clips/` unless you pass `--out`.
 
 ```bash
 pip install -e ".[embed]"
+pip install -e ".[web]"
 answer-clip index <video_id>
 # default model: BAAI/bge-small-zh-v1.5
 answer-clip index <video_id> --model BAAI/bge-small-zh-v1.5 --device cpu
@@ -115,6 +118,15 @@ answer-clip ask <id> "…" --build-embed   # opt-in: index then ask
 | `ANSWER_CLIP_LLM_BASE_URL` | OpenAI-compatible base URL |
 | `ANSWER_CLIP_LLM_MODEL` | Chat model name (default `gpt-4o-mini`) |
 | `ANSWER_CLIP_ASR_SLOW=1` | Opt into slow real-Whisper pytest |
+
+## Serve (localhost demo)
+
+```bash
+pip install -e ".[web]"
+answer-clip serve          # http://127.0.0.1:8765/  (loopback only)
+```
+
+No auth. Not for multi-tenant or public internet.
 
 ## Development
 

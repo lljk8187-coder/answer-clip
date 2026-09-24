@@ -18,6 +18,34 @@ from answer_clip.run import RunError, run_pipeline
 from answer_clip.query.ask import AskError, ask, ask_to_json
 
 
+
+def _cmd_serve(args: argparse.Namespace) -> int:
+    data_root = Path(args.data_dir).expanduser() if args.data_dir else None
+    try:
+        from answer_clip.web.serve import run_serve
+    except ImportError as exc:
+        print(
+            'serve requires the [web] extra: pip install "answer-clip[web]"\n'
+            f"Import error: {exc}",
+            file=sys.stderr,
+        )
+        return 1
+    host = args.host or "127.0.0.1"
+    if host not in {"127.0.0.1", "localhost", "::1"} and not args.allow_non_local:
+        print(
+            "serve refuses non-loopback bind without --allow-non-local "
+            f"(got host={host!r}). Default is 127.0.0.1 only.",
+            file=sys.stderr,
+        )
+        return 2
+    print(
+        f"answer-clip serve → http://{host}:{args.port}/  (data={data_root or './data'})",
+        file=sys.stderr,
+    )
+    run_serve(host=host, port=args.port, data_root=data_root)
+    return 0
+
+
 def _cmd_stub(name: str) -> int:
     print(
         f"answer-clip {name}: not implemented yet.",
@@ -494,6 +522,41 @@ def build_parser() -> argparse.ArgumentParser:
         help="Model cache directory (default: <data>/models).",
     )
     index_p.set_defaults(_handler=_cmd_index)
+
+    serve_p = sub.add_parser(
+        "serve",
+        help=(
+            "Localhost demo UI (ask → hits → clip). Requires [web] extra; "
+            "binds 127.0.0.1 by default."
+        ),
+        description=(
+            "Run a localhost-only FastAPI demo: pick a video, ask a question, "
+            "view hits, and export a clip. No auth; not for public exposure."
+        ),
+    )
+    serve_p.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="Bind address (default: 127.0.0.1).",
+    )
+    serve_p.add_argument(
+        "--port",
+        type=int,
+        default=8765,
+        help="Port (default: 8765).",
+    )
+    serve_p.add_argument(
+        "--data-dir",
+        default=None,
+        help="Data root (default: ./data or $ANSWER_CLIP_DATA).",
+    )
+    serve_p.add_argument(
+        "--allow-non-local",
+        action="store_true",
+        help="Allow binding a non-loopback host (still no auth — use with care).",
+    )
+    serve_p.set_defaults(_handler=_cmd_serve)
+
 
     return parser
 
