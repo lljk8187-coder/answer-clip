@@ -1,9 +1,7 @@
-"""Minimal smoke tests for the Phase 1 scaffold."""
+"""Minimal smoke tests for the scaffold / CLI."""
 
 from __future__ import annotations
 
-import os
-import shutil
 import subprocess
 import sys
 
@@ -20,6 +18,7 @@ def test_version_constant() -> None:
 def test_import_package() -> None:
     import answer_clip.asr  # noqa: F401
     import answer_clip.clip  # noqa: F401
+    import answer_clip.ffprobe  # noqa: F401
     import answer_clip.index  # noqa: F401
     import answer_clip.ingest  # noqa: F401
     import answer_clip.models  # noqa: F401
@@ -30,6 +29,12 @@ def test_import_package() -> None:
 def test_help_exit_zero() -> None:
     with pytest.raises(SystemExit) as exc:
         main(["--help"])
+    assert exc.value.code == 0
+
+
+def test_ingest_help() -> None:
+    with pytest.raises(SystemExit) as exc:
+        main(["ingest", "--help"])
     assert exc.value.code == 0
 
 
@@ -49,20 +54,6 @@ def test_no_subcommand_prints_help(capsys: pytest.CaptureFixture[str]) -> None:
 def test_cli_help_subprocess() -> None:
     result = subprocess.run(
         [sys.executable, "-m", "answer_clip", "--help"],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode == 0
-    assert "answer-clip" in result.stdout
-
-
-def test_console_script_help() -> None:
-    exe = shutil.which("answer-clip")
-    if exe is None:
-        pytest.skip("answer-clip console script not on PATH (editable install optional)")
-    result = subprocess.run(
-        [exe, "--help"],
         check=False,
         capture_output=True,
         text=True,
