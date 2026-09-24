@@ -85,3 +85,18 @@ class VideoMeta(BaseModel):
     ingested_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
     )
+
+
+class ExportJob(BaseModel):
+    """Result metadata for an ffmpeg clip export."""
+
+    video_id: str
+    source_path: str
+    start: float
+    end: float
+    pad_sec: float = 0.0
+    output_path: str
+    duration_sec: float | None = None
+    codec_mode: Literal["copy", "reencode"] = "copy"
+    sidecar_path: str | None = None
+    hit_index: int | None = None

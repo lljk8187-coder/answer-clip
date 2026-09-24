@@ -12,6 +12,7 @@ from answer_clip.asr.base import AsrBackendError
 from answer_clip.asr.pipeline import AsrError, run_asr
 from answer_clip.ffprobe import FfprobeError
 from answer_clip.ingest import IngestError, ingest
+from answer_clip.clip import ClipError, export_clip
 from answer_clip.query.ask import AskError, ask, ask_to_json
 
 
@@ -95,6 +96,27 @@ def _cmd_ask(args: argparse.Namespace) -> int:
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(payload, encoding="utf-8")
     print(payload, end="")
+    return 0
+
+
+
+def _cmd_clip(args: argparse.Namespace) -> int:
+    data_root = Path(args.data_dir).expanduser() if args.data_dir else None
+    try:
+        job = export_clip(
+            args.video_id,
+            start=args.start,
+            end=args.end,
+            pad_sec=args.pad_sec,
+            out=args.out,
+            data_root=data_root,
+            hit_index=args.hit,
+            ask_result=args.ask_result,
+        )
+    except ClipError as exc:
+        print(f"clip error: {exc}", file=sys.stderr)
+        return 1
+    print(job.model_dump_json(indent=2))
     return 0
 
 
@@ -225,9 +247,47 @@ def build_parser() -> argparse.ArgumentParser:
     )
     ask_p.set_defaults(_handler=_cmd_ask)
 
+    clip_p = sub.add_parser(
+        "clip",
+        help=(
+            "Export a time range with ffmpeg to data/videos/<id>/clips/ "
+            "(stream copy, re-encode fallback)."
+        ),
+    )
+    clip_p.add_argument("video_id", help="Ingested video id under data/videos/<id>/.")
+    clip_p.add_argument("--start", type=float, default=None, help="Clip start seconds.")
+    clip_p.add_argument("--end", type=float, default=None, help="Clip end seconds.")
+    clip_p.add_argument(
+        "--pad-sec",
+        type=float,
+        default=0.0,
+        help="Pad start/end by this many seconds before cutting.",
+    )
+    clip_p.add_argument(
+        "--out",
+        default=None,
+        help="Output media path (default: data/videos/<id>/clips/clip_*.mp4).",
+    )
+    clip_p.add_argument(
+        "--data-dir",
+        default=None,
+        help="Data root (default: ./data or $ANSWER_CLIP_DATA).",
+    )
+    clip_p.add_argument(
+        "--hit",
+        type=int,
+        default=None,
+        help="Use start/end from QueryResult hits[index] (needs --ask-result).",
+    )
+    clip_p.add_argument(
+        "--ask-result",
+        default=None,
+        help="Path to ask QueryResult JSON (for --hit).",
+    )
+    clip_p.set_defaults(_handler=_cmd_clip)
+
     for name, help_text in (
         ("index", "Build or refresh the transcript index (stub)."),
-        ("clip", "Cut a media clip for a hit span (stub)."),
     ):
         p = sub.add_parser(name, help=help_text)
         p.set_defaults(_handler=lambda _args, n=name: _cmd_stub(n))

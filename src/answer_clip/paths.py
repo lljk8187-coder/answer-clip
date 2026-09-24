@@ -11,6 +11,7 @@ META_FILENAME = "meta.json"
 SEGMENTS_FILENAME = "segments.json"
 SRT_FILENAME = "transcript.srt"
 MODEL_CACHE_DIRNAME = "models"
+CLIPS_DIRNAME = "clips"
 
 
 def data_dir(root: Path | None = None) -> Path:
@@ -52,3 +53,7 @@ def model_cache_dir(root: Path | None = None) -> Path:
     if env:
         return Path(env).expanduser().resolve()
     return data_dir(root) / MODEL_CACHE_DIRNAME
+
+
+def clips_dir(video_id: str, root: Path | None = None) -> Path:
+    return video_dir(video_id, root) / CLIPS_DIRNAME

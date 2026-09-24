@@ -66,6 +66,18 @@ With an API key, windows may be reranked via an OpenAI-compatible chat API;
 without a key the result sets `llm_skipped` and still returns keyword hits.
 JSON goes to stdout (and optional `--out`).
 
+## Clip
+
+```bash
+answer-clip clip <video_id> --start 12.0 --end 18.5
+answer-clip clip <video_id> --start 12 --end 18 --pad-sec 0.5 --out /tmp/out.mp4
+# optional: cut from a saved ask result
+answer-clip clip <video_id> --hit 0 --ask-result ask.json
+```
+
+Uses ffmpeg stream copy when possible, then re-encodes. Writes a `.json`
+sidecar next to the media and prints `ExportJob` JSON on stdout.
+
 ## Layout
 
 ```
