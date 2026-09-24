@@ -64,7 +64,7 @@ def _silent_mp4(tmp_path: Path, duration: float = 2.0) -> Path:
 
 
 def test_version_is_release() -> None:
-    assert __version__ == "0.1.0"
+    assert __version__ == "0.2.0"
 
 
 def test_run_pipeline_mock_asr(tmp_path: Path) -> None:

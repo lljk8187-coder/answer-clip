@@ -2,9 +2,9 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased]
+## [0.2.0] — 2026-09-24
 
-Phase 2 retrieval (still versioned as `0.1.0` until the `0.2.0` cut).
+Phase 2: semantic retrieval + localhost demo.
 
 ### Added
 
@@ -20,13 +20,14 @@ Phase 2 retrieval (still versioned as `0.1.0` until the `0.2.0` cut).
   (ask never silently downloads models).
 - **M9 — CJK trigram**: keyword `tokenize` emits CJK unigram + bigram +
   **trigram** (no jieba / new deps) for better short Chinese recall.
+- **M10 — docs / CLI help**: README and `--help` aligned for index, `[embed]`,
+  ask modes, `embed_skipped`; non-goals allow a localhost demo (not multi-tenant SaaS).
 - **M11 — `serve`**: optional `[web]` FastAPI localhost demo
-  (ask → hits → clip); default bind `127.0.0.1`.
+  (ask → hits → clip / download); default bind `127.0.0.1`.
 
-### Docs
+### Notes
 
-- README / CLI help aligned for index, `[embed]`, ask modes, `embed_skipped`,
-  and localhost-demo-friendly non-goals (M10).
+- Package version **0.2.0**. No model weights bundled; no multi-tenant hosting.
 
 ## [0.1.0] — 2026-09-24
 

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "answer-clip"
-version = "0.1.0"
+version = "0.2.0"
 description = "Local CLI to search lecture/video transcripts and clip the matching moments."
 readme = "README.md"
 license = "MIT"

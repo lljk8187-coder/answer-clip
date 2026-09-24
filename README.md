@@ -3,7 +3,7 @@
 Local CLI that turns lecture / course videos into searchable transcripts, then
 clips the moments that answer your question.
 
-**Version:** `0.1.0` (Phase 1 complete; Phase 2 retrieval on `main` — release `0.2.0` later)
+**Version:** `0.2.0` (Phase 2: hybrid semantic retrieval + localhost `serve` demo)
 
 ## Non-goals
 
