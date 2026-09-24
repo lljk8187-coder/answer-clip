@@ -1,0 +1,8 @@
+[
+  {"start": 0.0, "end": 2.5, "text": "Welcome to the machine learning lecture."},
+  {"start": 2.5, "end": 6.0, "text": "Today we explain gradient descent step by step."},
+  {"start": 6.0, "end": 9.5, "text": "Backpropagation computes gradients efficiently."},
+  {"start": 9.5, "end": 13.0, "text": "接下来用中文讲一下梯度下降的直观含义。"},
+  {"start": 13.0, "end": 16.0, "text": "学习率太大会导致震荡，太小则收敛很慢。"},
+  {"start": 16.0, "end": 18.0, "text": "Completely unrelated cooking tips for pasta."}
+]

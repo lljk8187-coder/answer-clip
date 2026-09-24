@@ -25,6 +25,7 @@ def test_import_package() -> None:
     import answer_clip.models  # noqa: F401
     import answer_clip.paths  # noqa: F401
     import answer_clip.query  # noqa: F401
+    import answer_clip.query.ask  # noqa: F401
 
 
 def test_help_exit_zero() -> None:

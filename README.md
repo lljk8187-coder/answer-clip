@@ -52,6 +52,20 @@ Default backend is **faster-whisper** (install `[asr]`). Model weights download
 into `data/models/` (gitignored) or `$ANSWER_CLIP_MODEL_CACHE`. An
 `openai-compatible` backend name is reserved as a stub.
 
+## Ask
+
+```bash
+answer-clip ask <video_id> "梯度下降是什么" --no-llm
+answer-clip ask <video_id> "what is backpropagation" --top-k 3 --pad-sec 1.5
+# optional LLM rerank when OPENAI_API_KEY or ANSWER_CLIP_LLM_API_KEY is set:
+answer-clip ask <video_id> "..." --llm
+```
+
+Default path is keyword scoring (Latin words length≥2; CJK unigrams+bigrams).
+With an API key, windows may be reranked via an OpenAI-compatible chat API;
+without a key the result sets `llm_skipped` and still returns keyword hits.
+JSON goes to stdout (and optional `--out`).
+
 ## Layout
 
 ```
@@ -59,7 +73,8 @@ src/answer_clip/
   cli.py
   ingest.py / ffprobe.py
   asr/          # backends + pipeline
-  models.py     # VideoMeta, SubtitleSegment, …
+  query/        # ask: keyword ± optional LLM rerank
+  models.py     # VideoMeta, SubtitleSegment, QueryResult, …
   paths.py
 ```
 

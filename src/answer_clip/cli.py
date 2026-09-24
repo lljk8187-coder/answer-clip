@@ -12,6 +12,7 @@ from answer_clip.asr.base import AsrBackendError
 from answer_clip.asr.pipeline import AsrError, run_asr
 from answer_clip.ffprobe import FfprobeError
 from answer_clip.ingest import IngestError, ingest
+from answer_clip.query.ask import AskError, ask, ask_to_json
 
 
 def _cmd_stub(name: str) -> int:
@@ -59,9 +60,41 @@ def _cmd_asr(args: argparse.Namespace) -> int:
     except AsrBackendError as exc:
         print(f"asr backend error: {exc}", file=sys.stderr)
         return 1
-    # Omit full segment dump from stdout summary (still on disk).
     summary = {k: v for k, v in result.items() if k != "segments"}
     print(json.dumps(summary, indent=2, ensure_ascii=False))
+    return 0
+
+
+def _cmd_ask(args: argparse.Namespace) -> int:
+    data_root = Path(args.data_dir).expanduser() if args.data_dir else None
+    if args.no_llm and args.llm:
+        print("ask error: use only one of --llm / --no-llm", file=sys.stderr)
+        return 2
+    use_llm: bool | None
+    if args.no_llm:
+        use_llm = False
+    elif args.llm:
+        use_llm = True
+    else:
+        use_llm = None
+    try:
+        result = ask(
+            args.video_id,
+            args.question,
+            data_root=data_root,
+            top_k=args.top_k,
+            pad_sec=args.pad_sec,
+            use_llm=use_llm,
+        )
+    except AskError as exc:
+        print(f"ask error: {exc}", file=sys.stderr)
+        return 1
+    payload = ask_to_json(result)
+    if args.out:
+        out = Path(args.out).expanduser()
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(payload, encoding="utf-8")
+    print(payload, end="")
     return 0
 
 
@@ -149,9 +182,51 @@ def build_parser() -> argparse.ArgumentParser:
     )
     asr_p.set_defaults(_handler=_cmd_asr)
 
+    ask_p = sub.add_parser(
+        "ask",
+        help=(
+            "Keyword search over segments.json (Top-K hits); "
+            "optional LLM window rerank when an API key is set."
+        ),
+    )
+    ask_p.add_argument("video_id", help="Ingested video id under data/videos/<id>/.")
+    ask_p.add_argument("question", help="Natural-language question / keywords.")
+    ask_p.add_argument(
+        "--data-dir",
+        default=None,
+        help="Data root (default: ./data or $ANSWER_CLIP_DATA).",
+    )
+    ask_p.add_argument(
+        "--top-k",
+        type=int,
+        default=5,
+        help="Max hits to return (default: 5).",
+    )
+    ask_p.add_argument(
+        "--pad-sec",
+        type=float,
+        default=0.0,
+        help="Pad and merge adjacent hit windows by this many seconds.",
+    )
+    ask_p.add_argument(
+        "--no-llm",
+        action="store_true",
+        help="Force keyword-only scoring (never call LLM).",
+    )
+    ask_p.add_argument(
+        "--llm",
+        action="store_true",
+        help="Attempt LLM rerank (skips with llm_skipped if no API key).",
+    )
+    ask_p.add_argument(
+        "--out",
+        default=None,
+        help="Also write QueryResult JSON to this path.",
+    )
+    ask_p.set_defaults(_handler=_cmd_ask)
+
     for name, help_text in (
         ("index", "Build or refresh the transcript index (stub)."),
-        ("query", "Ask a question against indexed transcripts (stub)."),
         ("clip", "Cut a media clip for a hit span (stub)."),
     ):
         p = sub.add_parser(name, help=help_text)
