@@ -17,6 +17,7 @@ def test_version_constant() -> None:
 
 def test_import_package() -> None:
     import answer_clip.asr  # noqa: F401
+    import answer_clip.asr.pipeline  # noqa: F401
     import answer_clip.clip  # noqa: F401
     import answer_clip.ffprobe  # noqa: F401
     import answer_clip.index  # noqa: F401

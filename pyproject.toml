@@ -25,6 +25,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+asr = ["faster-whisper>=1.0"]
 dev = ["pytest>=8.0"]
 
 [project.scripts]
@@ -36,3 +37,6 @@ packages = ["src/answer_clip"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+  "slow: hits real Whisper model download/inference (skip by default in CI)",
+]

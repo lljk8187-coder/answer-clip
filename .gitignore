@@ -47,3 +47,9 @@ models/cache/
 .idea/
 .vscode/
 *.swp
+
+# ASR / Whisper model weights (never commit)
+data/models/
+.cache/huggingface/
+.cache/whisper/
+**/faster_whisper_models/

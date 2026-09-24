@@ -15,50 +15,52 @@ clips the moments that answer your question.
 
 ## Install
 
-Requires Python 3.11+ and system **ffmpeg/ffprobe** (used by `ingest`).
+Requires Python 3.11+ and system **ffmpeg/ffprobe**.
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
+# optional local ASR:
+pip install -e ".[asr]"
 answer-clip --help
 ```
 
 ## Ingest
 
-Register a local media file under `data/videos/<id>/`:
-
 ```bash
 answer-clip ingest /path/to/lecture.mp4
-# optional: answer-clip ingest ./clip.mp4 --data-dir /tmp/ac-data
+# optional: --data-dir /tmp/ac-data
 ```
 
-Behaviour:
+Prefers a **hardlink** into `data/videos/<id>/`; falls back to **copy**. Writes
+`meta.json` via `ffprobe`. Override root with `--data-dir` or `$ANSWER_CLIP_DATA`.
 
-1. Compute a content-hash id (SHA-256 prefix).
-2. Prefer a **hardlink** into `data/videos/<id>/<filename>`; if that fails
-   (cross-device), **copy** the file.
-3. Run `ffprobe` and write `meta.json` (`VideoMeta`: duration, width/height,
-   codecs, fps, source path, copy strategy, …).
+## ASR
 
-`data/` (including large media) is gitignored. Override the data root with
-`--data-dir` or `$ANSWER_CLIP_DATA`.
+```bash
+answer-clip asr <video_id>
+answer-clip asr --path /path/to/media.mp4
+# options: --backend faster-whisper --model small --device cpu --compute-type int8
+```
 
-Subcommands `asr` / `index` / `query` / `clip` are still placeholders.
+Writes `segments.json` (`SubtitleSegment`: start/end/text/confidence?) and
+`transcript.srt` next to the media (under the video dir when using `video_id`).
+Segments are sorted and de-overlapped (later starts clamped to previous end).
+
+Default backend is **faster-whisper** (install `[asr]`). Model weights download
+into `data/models/` (gitignored) or `$ANSWER_CLIP_MODEL_CACHE`. An
+`openai-compatible` backend name is reserved as a stub.
 
 ## Layout
 
 ```
 src/answer_clip/
   cli.py
-  ingest.py   # register local media + meta.json
-  ffprobe.py  # system ffprobe wrapper
-  asr.py      # stub
-  index.py    # stub
-  query.py    # stub
-  clip.py     # stub
-  models.py   # VideoMeta, HitSpan
-  paths.py    # data/videos/<id>/ helpers
+  ingest.py / ffprobe.py
+  asr/          # backends + pipeline
+  models.py     # VideoMeta, SubtitleSegment, …
+  paths.py
 ```
 
 ## License

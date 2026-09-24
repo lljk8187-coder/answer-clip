@@ -8,6 +8,18 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
+class SubtitleSegment(BaseModel):
+    """One timed subtitle / ASR segment."""
+
+    start: float = Field(ge=0, description="Segment start in seconds.")
+    end: float = Field(ge=0, description="Segment end in seconds.")
+    text: str = ""
+    confidence: float | None = Field(
+        default=None,
+        description="Optional backend confidence in [0, 1].",
+    )
+
+
 class HitSpan(BaseModel):
     """A transcript span that answers a query (placeholder)."""
 

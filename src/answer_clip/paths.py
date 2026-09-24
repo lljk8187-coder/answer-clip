@@ -8,6 +8,9 @@ from pathlib import Path
 DEFAULT_DATA_DIRNAME = "data"
 VIDEOS_DIRNAME = "videos"
 META_FILENAME = "meta.json"
+SEGMENTS_FILENAME = "segments.json"
+SRT_FILENAME = "transcript.srt"
+MODEL_CACHE_DIRNAME = "models"
 
 
 def data_dir(root: Path | None = None) -> Path:
@@ -33,3 +36,19 @@ def video_meta_path(video_id: str, root: Path | None = None) -> Path:
 
 def video_media_path(video_id: str, filename: str, root: Path | None = None) -> Path:
     return video_dir(video_id, root) / filename
+
+
+def segments_path(video_id: str, root: Path | None = None) -> Path:
+    return video_dir(video_id, root) / SEGMENTS_FILENAME
+
+
+def srt_path(video_id: str, root: Path | None = None) -> Path:
+    return video_dir(video_id, root) / SRT_FILENAME
+
+
+def model_cache_dir(root: Path | None = None) -> Path:
+    """Default download cache for ASR weights (gitignored under data/)."""
+    env = os.environ.get("ANSWER_CLIP_MODEL_CACHE")
+    if env:
+        return Path(env).expanduser().resolve()
+    return data_dir(root) / MODEL_CACHE_DIRNAME
