@@ -3,91 +3,78 @@
 Local CLI that turns lecture / course videos into searchable transcripts, then
 clips the moments that answer your question.
 
-**Version:** `0.1.0a1` (Phase 1)
+**Version:** `0.1.0` (Phase 1)
 
-## Non-goals (for now)
+## Non-goals
 
-- Hosted / multi-tenant SaaS
-- A web UI or browser extension
-- Shipping pretrained models inside the repo
-- Real-time streaming ASR
-- Automatic upload to YouTube / cloud storage
+- Hosted / multi-tenant SaaS or Web UI
+- Embedding vector databases
+- Shipping pretrained model weights in the repo
+- Real-time / live streaming ASR
+- Face / person detection
+- Auto-upload to short-video platforms
+
+## Requirements
+
+- Python **3.11+**
+- System **ffmpeg** and **ffprobe** on `PATH`
+- Optional ASR: `faster-whisper` via the `[asr]` extra
 
 ## Install
 
-Requires Python 3.11+ and system **ffmpeg/ffprobe**.
-
 ```bash
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
-# optional local ASR:
+# local speech-to-text:
 pip install -e ".[asr]"
 answer-clip --help
 ```
 
-## Ingest
+## Quick start
 
 ```bash
-answer-clip ingest /path/to/lecture.mp4
-# optional: --data-dir /tmp/ac-data
-```
+# One-shot: ingest → asr → ask → clip top hit
+answer-clip run ./lecture.mp4 "梯度下降是什么" --no-llm --model small
 
-Prefers a **hardlink** into `data/videos/<id>/`; falls back to **copy**. Writes
-`meta.json` via `ffprobe`. Override root with `--data-dir` or `$ANSWER_CLIP_DATA`.
-
-## ASR
-
-```bash
-answer-clip asr <video_id>
-answer-clip asr --path /path/to/media.mp4
-# options: --backend faster-whisper --model small --device cpu --compute-type int8
-```
-
-Writes `segments.json` (`SubtitleSegment`: start/end/text/confidence?) and
-`transcript.srt` next to the media (under the video dir when using `video_id`).
-Segments are sorted and de-overlapped (later starts clamped to previous end).
-
-Default backend is **faster-whisper** (install `[asr]`). Model weights download
-into `data/models/` (gitignored) or `$ANSWER_CLIP_MODEL_CACHE`. An
-`openai-compatible` backend name is reserved as a stub.
-
-## Ask
-
-```bash
-answer-clip ask <video_id> "梯度下降是什么" --no-llm
-answer-clip ask <video_id> "what is backpropagation" --top-k 3 --pad-sec 1.5
-# optional LLM rerank when OPENAI_API_KEY or ANSWER_CLIP_LLM_API_KEY is set:
-answer-clip ask <video_id> "..." --llm
-```
-
-Default path is keyword scoring (Latin words length≥2; CJK unigrams+bigrams).
-With an API key, windows may be reranked via an OpenAI-compatible chat API;
-without a key the result sets `llm_skipped` and still returns keyword hits.
-JSON goes to stdout (and optional `--out`).
-
-## Clip
-
-```bash
-answer-clip clip <video_id> --start 12.0 --end 18.5
-answer-clip clip <video_id> --start 12 --end 18 --pad-sec 0.5 --out /tmp/out.mp4
-# optional: cut from a saved ask result
+# Or step by step:
+answer-clip ingest ./lecture.mp4
+answer-clip asr <video_id> --model small
+answer-clip ask <video_id> "what is backpropagation" --no-llm --top-k 3
 answer-clip clip <video_id> --hit 0 --ask-result ask.json
+# or: answer-clip clip <video_id> --start 12.0 --end 18.5
 ```
 
-Uses ffmpeg stream copy when possible, then re-encodes. Writes a `.json`
-sidecar next to the media and prints `ExportJob` JSON on stdout.
+`run` prints a JSON summary (video id, ask hits, clip `ExportJob`). Clips land
+under `data/videos/<id>/clips/` unless you pass `--out`.
 
-## Layout
+## Subcommands
 
-```
-src/answer_clip/
-  cli.py
-  ingest.py / ffprobe.py
-  asr/          # backends + pipeline
-  query/        # ask: keyword ± optional LLM rerank
-  models.py     # VideoMeta, SubtitleSegment, QueryResult, …
-  paths.py
+| Command | Purpose |
+|---------|---------|
+| `ingest <path>` | Register media under `data/videos/<id>/` + `meta.json` (ffprobe) |
+| `asr <video_id\|--path>` | Write `segments.json` + `transcript.srt` (faster-whisper) |
+| `ask <video_id> "…"` | Keyword Top-K hits; optional LLM window rerank |
+| `clip <video_id>` | ffmpeg export (`--start/--end` or `--hit` + `--ask-result`) |
+| `run <path> "…"` | ingest → asr → ask → clip |
+| `index` | Stub (later phases) |
+
+## Environment variables
+
+| Variable | Meaning |
+|----------|---------|
+| `ANSWER_CLIP_DATA` | Data root (default `./data`) |
+| `ANSWER_CLIP_MODEL_CACHE` | Whisper weight cache (default `<data>/models`) |
+| `OPENAI_API_KEY` / `ANSWER_CLIP_LLM_API_KEY` | Enable optional ask LLM rerank |
+| `ANSWER_CLIP_LLM_BASE_URL` | OpenAI-compatible base URL |
+| `ANSWER_CLIP_LLM_MODEL` | Chat model name (default `gpt-4o-mini`) |
+| `ANSWER_CLIP_ASR_SLOW=1` | Opt into slow real-Whisper pytest |
+
+## Development
+
+```bash
+pip install -e ".[dev]"
+pytest -m "not slow"
 ```
 
 ## License

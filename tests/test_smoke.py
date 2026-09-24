@@ -12,7 +12,7 @@ from answer_clip.cli import build_parser, main
 
 
 def test_version_constant() -> None:
-    assert __version__ == "0.1.0a1"
+    assert __version__ == "0.1.0"
 
 
 def test_import_package() -> None:

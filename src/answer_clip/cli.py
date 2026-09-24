@@ -13,6 +13,7 @@ from answer_clip.asr.pipeline import AsrError, run_asr
 from answer_clip.ffprobe import FfprobeError
 from answer_clip.ingest import IngestError, ingest
 from answer_clip.clip import ClipError, export_clip
+from answer_clip.run import RunError, run_pipeline
 from answer_clip.query.ask import AskError, ask, ask_to_json
 
 
@@ -117,6 +118,46 @@ def _cmd_clip(args: argparse.Namespace) -> int:
         print(f"clip error: {exc}", file=sys.stderr)
         return 1
     print(job.model_dump_json(indent=2))
+    return 0
+
+
+
+def _cmd_run(args: argparse.Namespace) -> int:
+    data_root = Path(args.data_dir).expanduser() if args.data_dir else None
+    download_root = (
+        Path(args.download_root).expanduser() if args.download_root else None
+    )
+    if args.no_llm and args.llm:
+        print("run error: use only one of --llm / --no-llm", file=sys.stderr)
+        return 2
+    if args.no_llm:
+        use_llm: bool | None = False
+    elif args.llm:
+        use_llm = True
+    else:
+        use_llm = False  # run defaults to keyword-only
+    try:
+        summary = run_pipeline(
+            args.video_path,
+            args.question,
+            data_root=data_root,
+            backend=args.backend,
+            model_size=args.model,
+            device=args.device,
+            compute_type=args.compute_type,
+            language=args.language,
+            download_root=download_root,
+            top_k=args.top_k,
+            pad_sec=args.pad_sec,
+            use_llm=use_llm,
+            hit=args.hit,
+            out=args.out,
+            skip_clip=args.skip_clip,
+        )
+    except RunError as exc:
+        print(f"run error: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps(summary, indent=2, ensure_ascii=False))
     return 0
 
 
@@ -285,6 +326,66 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to ask QueryResult JSON (for --hit).",
     )
     clip_p.set_defaults(_handler=_cmd_clip)
+
+    run_p = sub.add_parser(
+        "run",
+        help=(
+            "One-shot: ingest → asr → ask → clip top hit "
+            "(pass-through model / no-llm / pad-sec / out)."
+        ),
+    )
+    run_p.add_argument("video_path", help="Local media file to ingest.")
+    run_p.add_argument("question", help="Question / keywords for ask.")
+    run_p.add_argument(
+        "--data-dir",
+        default=None,
+        help="Data root (default: ./data or $ANSWER_CLIP_DATA).",
+    )
+    run_p.add_argument(
+        "--backend",
+        default="faster-whisper",
+        help="ASR backend (default: faster-whisper).",
+    )
+    run_p.add_argument("--model", default="small", help="ASR model size.")
+    run_p.add_argument("--device", default="cpu", help="ASR device.")
+    run_p.add_argument(
+        "--compute-type",
+        default="int8",
+        help="ASR compute type (default: int8).",
+    )
+    run_p.add_argument("--language", default=None, help="Force ASR language.")
+    run_p.add_argument(
+        "--download-root",
+        default=None,
+        help="ASR model cache directory.",
+    )
+    run_p.add_argument("--top-k", type=int, default=5, help="Ask top-k.")
+    run_p.add_argument(
+        "--pad-sec",
+        type=float,
+        default=0.0,
+        help="Pad/merge ask windows before clipping.",
+    )
+    run_p.add_argument("--no-llm", action="store_true", help="Keyword-only ask.")
+    run_p.add_argument("--llm", action="store_true", help="Attempt LLM rerank.")
+    run_p.add_argument(
+        "--hit",
+        type=int,
+        default=0,
+        help="Which ask hit to clip (default: 0 = top).",
+    )
+    run_p.add_argument(
+        "--out",
+        default=None,
+        help="Clip output path (default under data/videos/<id>/clips/).",
+    )
+    run_p.add_argument(
+        "--skip-clip",
+        action="store_true",
+        help="Stop after ask (do not export a clip).",
+    )
+    run_p.set_defaults(_handler=_cmd_run)
+
 
     for name, help_text in (
         ("index", "Build or refresh the transcript index (stub)."),

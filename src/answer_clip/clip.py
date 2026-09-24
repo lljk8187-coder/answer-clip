@@ -62,9 +62,14 @@ def resolve_span(
     hit_index: int | None,
     ask_result: Path | None,
 ) -> tuple[float, float, int | None]:
-    """Return padded (start, end, hit_index)."""
+    """Return padded (start, end, hit_index).
+
+    ``hit_index`` alone is metadata when ``start``/``end`` are already set
+    (e.g. ``run`` pipeline). Loading from ``ask_result`` only happens when
+    times are missing.
+    """
     hit_i = hit_index
-    if hit_index is not None:
+    if (start is None or end is None) and hit_index is not None:
         if ask_result is None:
             raise ClipError("--hit requires --ask-result pointing to a QueryResult JSON")
         path = Path(ask_result).expanduser()
