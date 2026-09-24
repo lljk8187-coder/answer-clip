@@ -80,6 +80,9 @@ def _cmd_ask(args: argparse.Namespace) -> int:
         use_llm = True
     else:
         use_llm = None
+    download_root = (
+        Path(args.download_root).expanduser() if getattr(args, "download_root", None) else None
+    )
     try:
         result = ask(
             args.video_id,
@@ -88,6 +91,11 @@ def _cmd_ask(args: argparse.Namespace) -> int:
             top_k=args.top_k,
             pad_sec=args.pad_sec,
             use_llm=use_llm,
+            mode=args.mode,
+            build_embed=bool(args.build_embed),
+            embed_model=args.embed_model,
+            embed_device=args.embed_device,
+            download_root=download_root,
         )
     except AskError as exc:
         print(f"ask error: {exc}", file=sys.stderr)
@@ -274,7 +282,7 @@ def build_parser() -> argparse.ArgumentParser:
     ask_p = sub.add_parser(
         "ask",
         help=(
-            "Keyword search over segments.json (Top-K hits); "
+            "Search segments.json (default: hybrid keyword+embed RRF); "
             "optional LLM window rerank when an API key is set."
         ),
     )
@@ -311,6 +319,35 @@ def build_parser() -> argparse.ArgumentParser:
         "--out",
         default=None,
         help="Also write QueryResult JSON to this path.",
+    )
+    ask_p.add_argument(
+        "--mode",
+        choices=["hybrid", "keyword", "embed"],
+        default="hybrid",
+        help=(
+            "Retrieval mode (default: hybrid = keyword + embed RRF; "
+            "keyword = lexical only; embed = semantic only, fails without index)."
+        ),
+    )
+    ask_p.add_argument(
+        "--build-embed",
+        action="store_true",
+        help="Opt-in: run `index` before ask (may download models). Default: off.",
+    )
+    ask_p.add_argument(
+        "--embed-model",
+        default="BAAI/bge-small-zh-v1.5",
+        help="Embedding model id when using embed/hybrid (default: BAAI/bge-small-zh-v1.5).",
+    )
+    ask_p.add_argument(
+        "--embed-device",
+        default=None,
+        help="Optional device for sentence-transformers (e.g. cpu, cuda).",
+    )
+    ask_p.add_argument(
+        "--download-root",
+        default=None,
+        help="Model cache directory for --build-embed / embed encode.",
     )
     ask_p.set_defaults(_handler=_cmd_ask)
 

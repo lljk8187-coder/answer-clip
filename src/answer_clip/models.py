@@ -41,6 +41,9 @@ class QueryHit(BaseModel):
     )
 
 
+AskMode = Literal["hybrid", "keyword", "embed"]
+
+
 class QueryResult(BaseModel):
     """Structured output of ``answer-clip ask``."""
 
@@ -49,7 +52,13 @@ class QueryResult(BaseModel):
     hits: list[QueryHit] = Field(default_factory=list)
     top_k: int = 5
     pad_sec: float = 0.0
+    mode: AskMode = "hybrid"
     keyword_backend: str = "simple"
+    embed_used: bool = False
+    embed_skipped: str | None = Field(
+        default=None,
+        description="Reason semantic retrieval was skipped, if any.",
+    )
     llm_used: bool = False
     llm_skipped: str | None = Field(
         default=None,
